@@ -3,39 +3,51 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
-//import routes
+// import routes
 import userRoute from "./routes/user.routes.js";
 import promtRoute from "./routes/promt.routes.js";
 import creditRoute from "./routes/credit.routes.js";
 
-dotenv.config(); // Load environment variables from .env file
+dotenv.config();
 
-//db cconnection import
+// db connection
 import { connectDB } from "./db/db.js";
 
 const app = express();
 
-// CORS configuration
+/* ---------------- CORS CONFIG ---------------- */
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://aifule.aadi01.me",
+  "https://promptverse.aadi01.me",
+  "https://prompt-verse-frontend.vercel.app", // ✅ ADD THIS
+];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000", // Frontend (Vite dev server)
-      "http://localhost:5173", // Alternative Vite port
-      "https://aifule.aadi01.me",
-      "https://promptverse.aadi01.me",
-    ], // Allow your frontend URLs
-    credentials: true, // Allow cookies to be sent
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed"));
+      }
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Middleware
-app.use(cookieParser()); // Use cookie-parser middleware to parse cookies
-app.use(express.json({ limit: "10mb" })); // Middleware to parse JSON bodies with size limit
-app.use(express.urlencoded({ extended: true, limit: "10mb" })); // Middleware to parse URL-encoded bodies
+/* ---------------- MIDDLEWARE ---------------- */
 
-// Middleware to ensure database connection for each request (important for serverless)
+app.use(cookieParser());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+/* -------- DATABASE CONNECTION MIDDLEWARE ----- */
+
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -46,33 +58,37 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Health check endpoint
+/* ---------------- ROUTES ---------------- */
+
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+  });
 });
 
-const port = process.env.PORT || 3001;
-
 app.get("/", (req, res) => {
-  //return a json with three thing one is name, second is age and third is city
   res.json({
-    response: "Welcome to aifule backend",
+    response: "Welcome to Aifule backend",
     ref: "for api reference use /ref",
   });
 });
 
-app.use("/api/user", userRoute); // Use user routes
-app.use("/api/promt", promtRoute); // Use prompt routes
-app.use("/api/credit", creditRoute); // Use credit routes
+app.use("/api/user", userRoute);
+app.use("/api/promt", promtRoute);
+app.use("/api/credit", creditRoute);
 
-// Global error handler for multer and other errors
+/* --------------- ERROR HANDLER -------------- */
+
 app.use((error, req, res, next) => {
   if (error.code === "LIMIT_FILE_SIZE") {
     return res.status(400).json({ message: "File too large" });
   }
+
   if (error.code === "LIMIT_UNEXPECTED_FILE") {
     return res.status(400).json({ message: "Invalid file field" });
   }
+
   if (error.message && error.message.includes("Invalid file type")) {
     return res.status(400).json({ message: error.message });
   }
@@ -81,25 +97,30 @@ app.use((error, req, res, next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
+/* ---------------- SERVER ---------------- */
+
+const port = process.env.PORT || 3001;
+
 app.listen(port, async () => {
-  console.log(`🚀 Server is running on port ${port}`);
+  console.log(`🚀 Server running on port ${port}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
 
   try {
-    await connectDB(); // Connect to MongoDB when the server starts
-    console.log("✅ Database connection established");
+    await connectDB();
+    console.log("✅ Database connected");
   } catch (error) {
     console.error("❌ Database connection failed:", error);
   }
 });
 
-// Graceful shutdown
+/* -------- GRACEFUL SHUTDOWN -------- */
+
 process.on("SIGTERM", () => {
-  console.log("SIGTERM received. Shutting down gracefully...");
+  console.log("SIGTERM received. Shutting down...");
   process.exit(0);
 });
 
 process.on("SIGINT", () => {
-  console.log("SIGINT received. Shutting down gracefully...");
+  console.log("SIGINT received. Shutting down...");
   process.exit(0);
 });
