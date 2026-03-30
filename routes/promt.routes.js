@@ -11,7 +11,7 @@ import {
 } from "../controllers/promt.controller.js";
 import { migratePromptData } from "../utils/migration.js";
 import express from "express";
-import { verifyToken } from "../middleware/jwt.js";
+import verifyToken from "../middleware/jwt.js";
 import uploadFields from "../middleware/upload.js";
 const router = express.Router();
 
