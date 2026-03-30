@@ -28,20 +28,17 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow requests with no origin like Postman / server-to-server
+      // allow requests with no origin (Postman, server-to-server)
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       return callback(new Error(`CORS not allowed for origin: ${origin}`));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// optional preflight support
-app.options("*", cors());
 
 /* ---------------- MIDDLEWARE ---------------- */
 
@@ -59,7 +56,7 @@ app.get("/health", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     response: "Welcome to PromptVerse backend",
     ref: "Use /health to check server status",
   });
@@ -102,7 +99,7 @@ app.use((error, req, res, next) => {
   }
 
   console.error("Unhandled error:", error);
-  res.status(500).json({ message: "Internal server error" });
+  return res.status(500).json({ message: "Internal server error" });
 });
 
 /* ---------------- SERVER ---------------- */
