@@ -8,10 +8,10 @@ import userRoute from "./routes/user.routes.js";
 import promtRoute from "./routes/promt.routes.js";
 import creditRoute from "./routes/credit.routes.js";
 
-dotenv.config();
-
 // db connection
 import { connectDB } from "./db/db.js";
+
+dotenv.config();
 
 const app = express();
 
@@ -22,41 +22,32 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://aifule.aadi01.me",
   "https://promptverse.aadi01.me",
-  "https://prompt-verse-frontend.vercel.app", // ✅ ADD THIS
+  "https://prompt-verse-frontend.vercel.app",
 ];
 
 app.use(
   cors({
-    origin: function (origin, callback) {
+    origin: (origin, callback) => {
+      // allow requests with no origin like Postman / server-to-server
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS not allowed"));
+        return callback(null, true);
       }
+      return callback(new Error(`CORS not allowed for origin: ${origin}`));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// optional preflight support
+app.options("*", cors());
 
 /* ---------------- MIDDLEWARE ---------------- */
 
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-/* -------- DATABASE CONNECTION MIDDLEWARE ----- */
-
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    console.error("Database connection error:", error);
-    res.status(500).json({ error: "Database connection failed" });
-  }
-});
 
 /* ---------------- ROUTES ---------------- */
 
@@ -69,14 +60,27 @@ app.get("/health", (req, res) => {
 
 app.get("/", (req, res) => {
   res.json({
-    response: "Welcome to Aifule backend",
-    ref: "for api reference use /ref",
+    response: "Welcome to PromptVerse backend",
+    ref: "Use /health to check server status",
   });
 });
 
 app.use("/api/user", userRoute);
+
+// support both old typo route and corrected route
 app.use("/api/promt", promtRoute);
+app.use("/api/prompt", promtRoute);
+
 app.use("/api/credit", creditRoute);
+
+/* --------------- 404 HANDLER -------------- */
+
+app.use((req, res) => {
+  res.status(404).json({
+    message: "Route not found",
+    path: req.originalUrl,
+  });
+});
 
 /* --------------- ERROR HANDLER -------------- */
 
@@ -93,6 +97,10 @@ app.use((error, req, res, next) => {
     return res.status(400).json({ message: error.message });
   }
 
+  if (error.message && error.message.includes("CORS")) {
+    return res.status(403).json({ message: error.message });
+  }
+
   console.error("Unhandled error:", error);
   res.status(500).json({ message: "Internal server error" });
 });
@@ -101,17 +109,22 @@ app.use((error, req, res, next) => {
 
 const port = process.env.PORT || 3001;
 
-app.listen(port, async () => {
-  console.log(`🚀 Server running on port ${port}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-
+const startServer = async () => {
   try {
     await connectDB();
     console.log("✅ Database connected");
+
+    app.listen(port, () => {
+      console.log(`🚀 Server running on port ${port}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+    });
   } catch (error) {
-    console.error("❌ Database connection failed:", error);
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
   }
-});
+};
+
+startServer();
 
 /* -------- GRACEFUL SHUTDOWN -------- */
 
