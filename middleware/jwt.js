@@ -1,44 +1,28 @@
 import Jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 
-const verifyToken = async (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
   try {
-    let token = null;
+    const authHeader = req.headers.authorization;
 
-    // 1. Check cookie
-    if (req.cookies?.Aifule) {
-      token = req.cookies.Aifule;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
     }
 
-    // 2. Check Authorization header
-    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-
-    if (!token) {
-      return res.status(401).json({
-        message: "No token provided, authorization denied",
-      });
-    }
+    const token = authHeader.split(" ")[1];
 
     const decoded = Jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(decoded.id || decoded.userId).select("-password");
+    const user = await User.findById(decoded.id);
 
     if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
+      return res.status(404).json({ message: "User not found" });
     }
 
     req.user = user;
     next();
   } catch (error) {
-    console.error("Token verification error:", error);
-    return res.status(401).json({
-      message: "Token is not valid",
-    });
+    console.error("JWT Error:", error);
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
-
-export default verifyToken;
