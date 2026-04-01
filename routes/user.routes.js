@@ -10,7 +10,7 @@ import {
 } from "../controllers/user.controller.js";
 
 import express from "express";
-import  verifyToken  from "../middleware/jwt.js";
+import { verifyToken }  from "../middleware/jwt.js";
 
 const router = express.Router();
 // Route to register a new user
