@@ -5,12 +5,12 @@ export const verifyToken = async (req, res, next) => {
   try {
     let token = null;
 
-    // Cookie token
+    // 1. Check cookie
     if (req.cookies?.Aifule) {
       token = req.cookies.Aifule;
     }
 
-    // Authorization header token
+    // 2. Check Authorization header
     if (!token && req.headers.authorization?.startsWith("Bearer ")) {
       token = req.headers.authorization.split(" ")[1];
     }
