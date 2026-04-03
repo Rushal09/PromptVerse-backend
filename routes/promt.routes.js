@@ -1,31 +1,47 @@
+import express from "express";
+import { verifyToken } from "../middleware/jwt.js";
+import upload from "../middleware/multer.js";
 import {
   createPromt,
   deletePromt,
   updatePromt,
   getMyPrompts,
-  getAllPrompts,
   getPromptById,
+  getAllPrompts,
   likeDisLikePromt,
   commentOnPromt,
   migrateLikesToNewFormat,
 } from "../controllers/promt.controller.js";
-import { migratePromptData } from "../utils/migration.js";
-import express from "express";
-import { verifyToken } from "../middleware/jwt.js";
-import uploadFields from "../middleware/upload.js";
+
 const router = express.Router();
 
-// Route to create a new prompt
-router.post("/create", uploadFields, verifyToken, createPromt);
-router.delete("/delete/:id", verifyToken, deletePromt);
-router.put("/update/:id", uploadFields, verifyToken, updatePromt);
+router.post(
+  "/create",
+  verifyToken,
+  upload.fields([
+    { name: "thumbnailImage", maxCount: 1 },
+    { name: "additionalFile", maxCount: 1 },
+  ]),
+  createPromt
+);
+
+router.delete("/:id", verifyToken, deletePromt);
+
+router.put(
+  "/update/:id",
+  verifyToken,
+  upload.fields([
+    { name: "thumbnailImage", maxCount: 1 },
+    { name: "additionalFile", maxCount: 1 },
+  ]),
+  updatePromt
+);
+
 router.get("/my-prompts", verifyToken, getMyPrompts);
 router.get("/all", verifyToken, getAllPrompts);
-router.get("/:id", verifyToken, getPromptById);
-router.put("/like-dislike/:id", verifyToken, likeDisLikePromt);
+router.get("/:id", getPromptById);
+router.put("/like/:id", verifyToken, likeDisLikePromt);
 router.post("/comment/:id", verifyToken, commentOnPromt);
-// Migration route (for admin use)
-router.post("/migrate", verifyToken, migratePromptData);
-router.post("/migrate-likes", verifyToken, migrateLikesToNewFormat);
-// Export the router
+router.post("/migrate-likes", migrateLikesToNewFormat);
+
 export default router;
