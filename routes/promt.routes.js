@@ -15,27 +15,9 @@ import {
 
 const router = express.Router();
 
-router.post(
-  "/create",
-  verifyToken,
-  upload.fields([
-    { name: "thumbnailImage", maxCount: 1 },
-    { name: "additionalFile", maxCount: 1 },
-  ]),
-  createPromt
-);
-
+router.post("/create", verifyToken, upload, createPromt);
 router.delete("/:id", verifyToken, deletePromt);
-
-router.put(
-  "/update/:id",
-  verifyToken,
-  upload.fields([
-    { name: "thumbnailImage", maxCount: 1 },
-    { name: "additionalFile", maxCount: 1 },
-  ]),
-  updatePromt
-);
+router.put("/update/:id", verifyToken, upload, updatePromt);
 
 router.get("/my-prompts", verifyToken, getMyPrompts);
 router.get("/all", verifyToken, getAllPrompts);
